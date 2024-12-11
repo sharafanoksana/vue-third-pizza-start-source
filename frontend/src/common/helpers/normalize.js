@@ -20,6 +20,7 @@ export const normalizeSize = (size) => {
 export const normalizeIngredients = (ingredient) => {
   return {
     ...ingredient,
+    count: 0,
     value: ingredients[ingredient.id],
   };
 };

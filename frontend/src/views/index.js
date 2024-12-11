@@ -1,0 +1,1 @@
+export {default as HomeVue} from "@/views/HomeView.vue"

@@ -5,61 +5,30 @@ main.content
     action="#"
     method="post"
   )
-    selector-radio.content__dough(
-      :selector-data="doughTypes"
-      :name-input="`dough`"
-      :title="`Выберите тесто`"
+    selector-dough(
+      :dough-list="doughTypes"
+      @check="checkDough"
+    )
+    selector-size(
+      :size-list="sizeItems"
+      @check="checkSize"
     )
 
-    selector-radio.content__diameter(
-      :selector-data="sizeItems"
-      :name-input="`diameter`"
-      :title="`Выберите размер`"
-      )
-
-    selector-radio.content__ingredients(
-      :selector-data="sauceItems"
-      :name-input="`sauce`"
-      :title="`Выберите ингредиенты`"
+    selector-ingredients(
+      :sauce-list="sauceItems"
+      @checkSauce="checkSauceUpdate"
+      :ingredient-list="ingredientItems"
+      @update-selected-ingredients="updateIngredients"
     )
-      .ingredients__filling
-        p Начинка:
-        ul.ingredients__list
-          li.ingredients__item(
-            v-for="ingredientType in ingredientItems"
-            :key="ingredientType.id"
-          )
-            .filling
-              img(
-                :src="getImage(ingredientType.image)"
-                :alt="ingredientType.name"
-              )
-              span {{ingredientType.name}}
 
-            counter-buttons()
+    content-pizza(
+      :dough-type="dough"
+      :size-type="size"
+      :sauce-type="sauce"
+      :selected-ingredients="selectedIngredients"
+      :result-price="price.result"
+    )
 
-    .content__pizza
-      label.input
-        span.visually-hidden Название пиццы
-        input(
-          type="text"
-          name="pizza_name"
-          placeholder="Введите название пиццы"
-        )
-
-      .content__constructor
-        .pizza.pizza--foundation--big-tomato
-          .pizza__wrapper
-            .pizza__filling.pizza__filling--ananas
-            .pizza__filling.pizza__filling--bacon
-            .pizza__filling.pizza__filling--cheddar
-
-      .content__result
-        p Итого: 0 ₽
-        button.button(
-          type="button"
-          disabled
-        ) Готовьте!
 </template>
 
 <script setup>
@@ -67,18 +36,82 @@ import doughJSON from "@/mocks/dough.json";
 import sizesJSON from "@/mocks/sizes.json";
 import saucesJSON from "@/mocks/sauces.json";
 import ingredientsJSON from "@/mocks/ingredients.json";
-import SelectorRadio from "@/common/components/SelectorRadio.vue";
-import {normalizeDough, normalizeIngredients, normalizeSauces, normalizeSize} from "@/common/helpers/normalize";
-import CounterButtons from "@/common/components/CounterButtons.vue";
+import {
+  normalizeDough,
+  normalizeIngredients,
+  normalizeSauces,
+  normalizeSize,
+} from "@/common/helpers/normalize";
+import SelectorDough from "@/modules/constructor/SelectorDough.vue";
+import { nextTick, reactive, ref } from "vue";
+import SelectorSize from "@/modules/constructor/SelectorSize.vue";
+import SelectorSauce from "@/modules/constructor/SelectorSauce.vue";
+import SelectorIngredients from "@/modules/constructor/SelectorIngredients.vue";
+import ContentPizza from "@/modules/constructor/ContentPizza.vue";
 
-const doughTypes = doughJSON.map(item => normalizeDough(item));
-const sizeItems = sizesJSON.map(item => normalizeSize(item))
-const sauceItems = saucesJSON.map(item => normalizeSauces(item))
-const ingredientItems = ingredientsJSON.map(item => normalizeIngredients(item))
+const dough = ref("big");
+const size = ref("big");
+const sauce = ref("creamy");
+let selectedIngredients = ref([]);
+
+const doughTypes = doughJSON.map((item) => normalizeDough(item));
+const sizeItems = sizesJSON.map((item) => normalizeSize(item));
+const sauceItems = saucesJSON.map((item) => normalizeSauces(item));
+const ingredientItems = ingredientsJSON.map((item) =>
+  normalizeIngredients(item),
+);
+
+let price;
+price = reactive({
+  dough: doughTypes.at(-1).price,
+  size: sizeItems.at(-1).value,
+  sauce: sauceItems.at(-1).price,
+  ingredients: [],
+  result: 0,
+});
 
 const getImage = (image) => {
   return new URL(`../assets/img/${image}`, import.meta.url).href;
 };
+
+const checkDough = (e) => {
+  const constantDough = {
+    light: "small",
+    large: "big",
+  };
+  dough.value = constantDough[e];
+  price.dough = doughTypes.find((el) => (el.value = e)).price;
+  getResultPrice()
+};
+const checkSize = (e) => {
+  size.value = e;
+  price.size = sizeItems.find((el) => (el.value = e)).value;
+  getResultPrice()
+};
+const checkSauceUpdate = (e) => {
+  sauce.value = e;
+  price.value.sauce = sauceItems.find((el) => (el.value = e)).price;
+  getResultPrice()
+};
+
+const updateIngredients = (item) => {
+  selectedIngredients.value = ingredientItems.filter((el) => el.count > 0);
+  price.ingredients = selectedIngredients.value;
+  getResultPrice()
+};
+
+function getResultPrice() {
+  let resultIngredients = 0;
+  if (price.ingredients.length) {
+    resultIngredients = selectedIngredients.value.reduce(
+      (accumulator, current) => accumulator + (current.price * current.count), resultIngredients,
+    );
+  }
+  const sizes = { big: 3, normal: 2, small: 1 };
+  price.result =
+    (price.dough + price.sauce + resultIngredients) *
+    sizes[price.size];
+}
 </script>
 
 <style scoped lang="scss">
@@ -128,10 +161,19 @@ const getImage = (image) => {
 }
 
 .content__constructor {
+  display: flex;
   width: 315px;
+  height: 315px;
   margin-top: 25px;
   margin-right: auto;
   margin-left: auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background-color: $green-100;
+  box-shadow:
+    0px 0px 20px 10px $silver-200,
+    0px 0px 20px 5px $green-100;
 }
 
 .content__result {
@@ -179,22 +221,22 @@ const getImage = (image) => {
   border-top: 1px solid rgba($green-500, 0.1);
 }
 
-//.ingredients__sauce {
-//  display: flex;
-//  align-items: center;
-//  flex-wrap: wrap;
-//
-//  width: 100%;
-//  margin-bottom: 14px;
-//
-//  p {
-//    @include r-s16-h19;
-//
-//    margin-top: 0;
-//    margin-right: 16px;
-//    margin-bottom: 10px;
-//  }
-//}
+.ingredients__sauce {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+
+  width: 100%;
+  margin-bottom: 14px;
+
+  p {
+    @include r-s16-h19;
+
+    margin-top: 0;
+    margin-right: 16px;
+    margin-bottom: 10px;
+  }
+}
 
 .ingredients__input {
   margin-right: 24px;
@@ -249,321 +291,321 @@ const getImage = (image) => {
   margin-left: 36px;
 }
 
-//.radio {
-//  cursor: pointer;
-//
-//  span {
-//    @include r-s16-h19;
-//
-//    position: relative;
-//
-//    padding-left: 28px;
-//
-//    &:before {
-//      @include p_center-v;
-//
-//      display: block;
-//
-//      box-sizing: border-box;
-//      width: 20px;
-//      height: 20px;
-//
-//      content: "";
-//      transition: 0.3s;
-//
-//      border: 1px solid $purple-400;
-//      border-radius: 50%;
-//      background-color: $white;
-//    }
-//  }
-//
-//  &:hover {
-//    input:not(:checked):not(:disabled) + span {
-//      &:before {
-//        border-color: $purple-800;
-//      }
-//    }
-//  }
-//
-//  input {
-//    display: none;
-//
-//    &:checked + span {
-//      &:before {
-//        border: 6px solid $green-500;
-//      }
-//    }
-//
-//    &:disabled {
-//      & + span {
-//        &:before {
-//          border-color: $purple-400;
-//          background-color: $silver-200;
-//        }
-//      }
-//
-//      &:checked + span {
-//        &:before {
-//          border: 6px solid $purple-400;
-//        }
-//      }
-//    }
-//  }
-//}
+.radio {
+  cursor: pointer;
 
-//.counter {
-//  display: flex;
-//
-//  justify-content: space-between;
-//  align-items: center;
-//}
-//
-//.counter__button {
-//  $el: &;
-//  $size_icon: 50%;
-//
-//  position: relative;
-//
-//  display: block;
-//
-//  width: 16px;
-//  height: 16px;
-//  margin: 0;
-//  padding: 0;
-//
-//  cursor: pointer;
-//  transition: 0.3s;
-//
-//  border: none;
-//  border-radius: 50%;
-//  outline: none;
-//
-//  &--minus {
-//    background-color: $purple-100;
-//
-//    &::before {
-//      @include p_center-all;
-//
-//      width: $size_icon;
-//      height: 2px;
-//
-//      content: "";
-//
-//      border-radius: 2px;
-//      background-color: $black;
-//    }
-//
-//    &:hover:not(:active):not(:disabled) {
-//      background-color: $purple-200;
-//    }
-//
-//    &:active:not(:disabled) {
-//      background-color: $purple-300;
-//    }
-//
-//    &:focus:not(:disabled) {
-//      box-shadow: $shadow-regular;
-//    }
-//
-//    &:disabled {
-//      cursor: default;
-//
-//      &::before {
-//        opacity: 0.1;
-//      }
-//    }
-//  }
-//
-//  &--plus {
-//    background-color: $green-500;
-//
-//    &::before {
-//      @include p_center-all;
-//
-//      width: $size_icon;
-//      height: 2px;
-//
-//      content: "";
-//
-//      border-radius: 2px;
-//      background-color: $white;
-//    }
-//
-//    &::after {
-//      @include p_center-all;
-//
-//      width: $size_icon;
-//      height: 2px;
-//
-//      content: "";
-//      transform: translate(-50%, -50%) rotate(90deg);
-//
-//      border-radius: 2px;
-//      background-color: $white;
-//    }
-//
-//    &:hover:not(:active):not(:disabled) {
-//      background-color: $green-400;
-//    }
-//
-//    &:active:not(:disabled) {
-//      background-color: $green-600;
-//    }
-//
-//    &:focus:not(:disabled) {
-//      box-shadow: $shadow-regular;
-//    }
-//
-//    &:disabled {
-//      cursor: default;
-//
-//      opacity: 0.3;
-//    }
-//  }
-//
-//  &--orange {
-//    background-color: $orange-200;
-//
-//    &:hover:not(:active):not(:disabled) {
-//      background-color: $orange-100;
-//    }
-//
-//    &:active:not(:disabled) {
-//      background-color: $orange-300;
-//    }
-//  }
-//}
-//
-//.counter__input {
-//  @include r-s14-h16;
-//
-//  box-sizing: border-box;
-//  width: 22px;
-//  margin: 0;
-//  padding: 0 3px;
-//
-//  text-align: center;
-//
-//  color: $black;
-//  border: none;
-//  border-radius: 10px;
-//  outline: none;
-//  background-color: transparent;
-//
-//  &:focus {
-//    box-shadow: inset $shadow-regular;
-//  }
-//}
+  span {
+    @include r-s16-h19;
 
-//.dough__input {
-//  position: relative;
-//
-//  margin-right: 8%;
-//  margin-bottom: 20px;
-//  padding-left: 50px;
-//
-//  cursor: pointer;
-//
-//  img {
-//    @include p_center-v;
-//
-//    width: 36px;
-//    height: 36px;
-//
-//    transition: 0.3s;
-//
-//    border-radius: 50%;
-//  }
-//
-//  b {
-//    @include r-s16-h19;
-//  }
-//
-//  span {
-//    @include l-s11-h13;
-//
-//    display: block;
-//  }
-//
-//  &:hover {
-//    img {
-//      box-shadow: $shadow-regular;
-//    }
-//  }
-//
-//  input {
-//    &:checked + img {
-//      box-shadow: $shadow-large;
-//    }
-//  }
-//}
-//
-//.diameter__input {
-//  margin-right: 8.7%;
-//  margin-bottom: 20px;
-//  padding-top: 7px;
-//  padding-bottom: 6px;
-//
-//  cursor: pointer;
-//
-//  span {
-//    @include r-s16-h19;
-//
-//    position: relative;
-//
-//    padding-left: 46px;
-//
-//    &::before {
-//      @include p_center_v;
-//
-//      width: 36px;
-//      height: 36px;
-//
-//      content: "";
-//      transition: 0.3s;
-//
-//      border-radius: 50%;
-//      background-color: $green-100;
-//      background-image: url("@/assets/img/diameter.svg");
-//      background-repeat: no-repeat;
-//      background-position: center;
-//    }
-//  }
-//
-//  &:nth-child(3n) {
-//    margin-right: 0;
-//  }
-//
-//  &--small {
-//    span::before {
-//      background-size: 18px;
-//    }
-//  }
-//
-//  &--normal {
-//    span::before {
-//      background-size: 29px;
-//    }
-//  }
-//
-//  &--big {
-//    span::before {
-//      background-size: 100%;
-//    }
-//  }
-//
-//  &:hover {
-//    span::before {
-//      box-shadow: $shadow-regular;
-//    }
-//  }
-//
-//  input {
-//    &:checked + span::before {
-//      box-shadow: $shadow-large;
-//    }
-//  }
-//}
+    position: relative;
+
+    padding-left: 28px;
+
+    &:before {
+      @include p_center-v;
+
+      display: block;
+
+      box-sizing: border-box;
+      width: 20px;
+      height: 20px;
+
+      content: "";
+      transition: 0.3s;
+
+      border: 1px solid $purple-400;
+      border-radius: 50%;
+      background-color: $white;
+    }
+  }
+
+  &:hover {
+    input:not(:checked):not(:disabled) + span {
+      &:before {
+        border-color: $purple-800;
+      }
+    }
+  }
+
+  input {
+    display: none;
+
+    &:checked + span {
+      &:before {
+        border: 6px solid $green-500;
+      }
+    }
+
+    &:disabled {
+      & + span {
+        &:before {
+          border-color: $purple-400;
+          background-color: $silver-200;
+        }
+      }
+
+      &:checked + span {
+        &:before {
+          border: 6px solid $purple-400;
+        }
+      }
+    }
+  }
+}
+
+.counter {
+  display: flex;
+
+  justify-content: space-between;
+  align-items: center;
+}
+
+.counter__button {
+  $el: &;
+  $size_icon: 50%;
+
+  position: relative;
+
+  display: block;
+
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  padding: 0;
+
+  cursor: pointer;
+  transition: 0.3s;
+
+  border: none;
+  border-radius: 50%;
+  outline: none;
+
+  &--minus {
+    background-color: $purple-100;
+
+    &::before {
+      @include p_center-all;
+
+      width: $size_icon;
+      height: 2px;
+
+      content: "";
+
+      border-radius: 2px;
+      background-color: $black;
+    }
+
+    &:hover:not(:active):not(:disabled) {
+      background-color: $purple-200;
+    }
+
+    &:active:not(:disabled) {
+      background-color: $purple-300;
+    }
+
+    &:focus:not(:disabled) {
+      box-shadow: $shadow-regular;
+    }
+
+    &:disabled {
+      cursor: default;
+
+      &::before {
+        opacity: 0.1;
+      }
+    }
+  }
+
+  &--plus {
+    background-color: $green-500;
+
+    &::before {
+      @include p_center-all;
+
+      width: $size_icon;
+      height: 2px;
+
+      content: "";
+
+      border-radius: 2px;
+      background-color: $white;
+    }
+
+    &::after {
+      @include p_center-all;
+
+      width: $size_icon;
+      height: 2px;
+
+      content: "";
+      transform: translate(-50%, -50%) rotate(90deg);
+
+      border-radius: 2px;
+      background-color: $white;
+    }
+
+    &:hover:not(:active):not(:disabled) {
+      background-color: $green-400;
+    }
+
+    &:active:not(:disabled) {
+      background-color: $green-600;
+    }
+
+    &:focus:not(:disabled) {
+      box-shadow: $shadow-regular;
+    }
+
+    &:disabled {
+      cursor: default;
+
+      opacity: 0.3;
+    }
+  }
+
+  &--orange {
+    background-color: $orange-200;
+
+    &:hover:not(:active):not(:disabled) {
+      background-color: $orange-100;
+    }
+
+    &:active:not(:disabled) {
+      background-color: $orange-300;
+    }
+  }
+}
+
+.counter__input {
+  @include r-s14-h16;
+
+  box-sizing: border-box;
+  width: 22px;
+  margin: 0;
+  padding: 0 3px;
+
+  text-align: center;
+
+  color: $black;
+  border: none;
+  border-radius: 10px;
+  outline: none;
+  background-color: transparent;
+
+  &:focus {
+    box-shadow: inset $shadow-regular;
+  }
+}
+
+.dough__input {
+  position: relative;
+
+  margin-right: 8%;
+  margin-bottom: 20px;
+  padding-left: 50px;
+
+  cursor: pointer;
+
+  img {
+    @include p_center-v;
+
+    width: 36px;
+    height: 36px;
+
+    transition: 0.3s;
+
+    border-radius: 50%;
+  }
+
+  b {
+    @include r-s16-h19;
+  }
+
+  span {
+    @include l-s11-h13;
+
+    display: block;
+  }
+
+  &:hover {
+    img {
+      box-shadow: $shadow-regular;
+    }
+  }
+
+  input {
+    &:checked + img {
+      box-shadow: $shadow-large;
+    }
+  }
+}
+
+.diameter__input {
+  margin-right: 8.7%;
+  margin-bottom: 20px;
+  padding-top: 7px;
+  padding-bottom: 6px;
+
+  cursor: pointer;
+
+  span {
+    @include r-s16-h19;
+
+    position: relative;
+
+    padding-left: 46px;
+
+    &::before {
+      @include p_center_v;
+
+      width: 36px;
+      height: 36px;
+
+      content: "";
+      transition: 0.3s;
+
+      border-radius: 50%;
+      background-color: $green-100;
+      background-image: url("@/assets/img/diameter.svg");
+      background-repeat: no-repeat;
+      background-position: center;
+    }
+  }
+
+  &:nth-child(3n) {
+    margin-right: 0;
+  }
+
+  &--small {
+    span::before {
+      background-size: 18px;
+    }
+  }
+
+  &--normal {
+    span::before {
+      background-size: 29px;
+    }
+  }
+
+  &--big {
+    span::before {
+      background-size: 100%;
+    }
+  }
+
+  &:hover {
+    span::before {
+      box-shadow: $shadow-regular;
+    }
+  }
+
+  input {
+    &:checked + span::before {
+      box-shadow: $shadow-large;
+    }
+  }
+}
 
 .filling {
   @include r-s14-h16;
@@ -721,6 +763,24 @@ const getImage = (image) => {
 
   &--foundation--small-tomato {
     background-image: url("@/assets/img/foundation/small-tomato.svg");
+  }
+
+  &.diameter {
+    display: flex;
+    &--small {
+      width: 245px;
+      height: 245px;
+    }
+
+    &--normal {
+      width: 280px;
+      height: 280px;
+    }
+
+    &--big {
+      width: 315px;
+      height: 315px;
+    }
   }
 }
 
