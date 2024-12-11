@@ -6,12 +6,12 @@ main.content
     method="post"
   )
     selector-dough(
-      :dough-list="doughTypes"
-      @check="checkDough"
+      v-model="pizza.dough"
+      :dough-list="doughItems"
     )
     selector-size(
+      v-model="pizza.size"
       :size-list="sizeItems"
-      @check="checkSize"
     )
 
     selector-ingredients(
@@ -22,11 +22,11 @@ main.content
     )
 
     content-pizza(
-      :dough-type="dough"
-      :size-type="size"
-      :sauce-type="sauce"
-      :selected-ingredients="selectedIngredients"
-      :result-price="price.result"
+      :dough-type="pizza.dough"
+      :size-type="pizza.size"
+      :sauce-type="pizza.sauce"
+      :selected-ingredients="pizza.ingredients"
+      :result-price="price"
     )
 
 </template>
@@ -43,75 +43,59 @@ import {
   normalizeSize,
 } from "@/common/helpers/normalize";
 import SelectorDough from "@/modules/constructor/SelectorDough.vue";
-import { nextTick, reactive, ref } from "vue";
+import { computed, nextTick, reactive, ref, watch } from "vue";
 import SelectorSize from "@/modules/constructor/SelectorSize.vue";
 import SelectorSauce from "@/modules/constructor/SelectorSauce.vue";
 import SelectorIngredients from "@/modules/constructor/SelectorIngredients.vue";
 import ContentPizza from "@/modules/constructor/ContentPizza.vue";
 
-const dough = ref("big");
-const size = ref("big");
-const sauce = ref("creamy");
-let selectedIngredients = ref([]);
-
-const doughTypes = doughJSON.map((item) => normalizeDough(item));
+const doughItems = doughJSON.map((item) => normalizeDough(item));
 const sizeItems = sizesJSON.map((item) => normalizeSize(item));
 const sauceItems = saucesJSON.map((item) => normalizeSauces(item));
 const ingredientItems = ingredientsJSON.map((item) =>
   normalizeIngredients(item),
 );
 
-let price;
-price = reactive({
-  dough: doughTypes.at(-1).price,
-  size: sizeItems.at(-1).value,
-  sauce: sauceItems.at(-1).price,
-  ingredients: [],
-  result: 0,
+const pizza = reactive({
+  name: "",
+  dough: doughItems[0].value,
+  size: sizeItems[0].value,
+  sauce: sauceItems.at(-1).value,
+  ingredients: ingredientItems.filter((el) => el.count !== 0),
+});
+
+const price = computed(() => {
+  const { dough, size, sauce, ingredients } = pizza;
+
+  const sizeMultiplier = sizeItems.find((el) => (el.value === size)).multiplier ?? 1;
+  const doughPrice =
+    doughItems.find((item) => item.value === dough)?.price ?? 0;
+  const saucePrice =
+    sauceItems.find((item) => item.value === sauce)?.price ?? 0;
+
+  // const ingredientsPrice =
+  let ingredientsPrice = 0;
+  if (ingredients.length) {
+    ingredientsPrice = ingredients.reduce(
+      (accumulator, current) => accumulator + current.price * current.count,
+      ingredientsPrice,
+    );
+  }
+  return (doughPrice + saucePrice + ingredientsPrice) * sizeMultiplier;
 });
 
 const getImage = (image) => {
   return new URL(`../assets/img/${image}`, import.meta.url).href;
 };
 
-const checkDough = (e) => {
-  const constantDough = {
-    light: "small",
-    large: "big",
-  };
-  dough.value = constantDough[e];
-  price.dough = doughTypes.find((el) => (el.value = e)).price;
-  getResultPrice()
-};
-const checkSize = (e) => {
-  size.value = e;
-  price.size = sizeItems.find((el) => (el.value = e)).value;
-  getResultPrice()
-};
-const checkSauceUpdate = (e) => {
-  sauce.value = e;
-  price.value.sauce = sauceItems.find((el) => (el.value = e)).price;
-  getResultPrice()
+const checkSauceUpdate = (str) => {
+  pizza.sauce = str;
 };
 
 const updateIngredients = (item) => {
-  selectedIngredients.value = ingredientItems.filter((el) => el.count > 0);
-  price.ingredients = selectedIngredients.value;
-  getResultPrice()
+  pizza.ingredients = ingredientItems.filter((el) => el.count > 0);
 };
 
-function getResultPrice() {
-  let resultIngredients = 0;
-  if (price.ingredients.length) {
-    resultIngredients = selectedIngredients.value.reduce(
-      (accumulator, current) => accumulator + (current.price * current.count), resultIngredients,
-    );
-  }
-  const sizes = { big: 3, normal: 2, small: 1 };
-  price.result =
-    (price.dough + price.sauce + resultIngredients) *
-    sizes[price.size];
-}
 </script>
 
 <style scoped lang="scss">

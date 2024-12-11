@@ -36,14 +36,14 @@ const props = defineProps({
   },
 });
 
-const emits = defineEmits(["checkSauce", 'updateSelectedIngredients']);
+const emits = defineEmits(["checkSauce", "updateSelectedIngredients"]);
 
-function checkSauce (e) {
+function checkSauce(e) {
   emits("checkSauce", e);
-};
+}
 
 function updateSelectedIngredients(item, count) {
-  item.count = count
+  item.count = count;
   emits("updateSelectedIngredients", item);
 }
 </script>

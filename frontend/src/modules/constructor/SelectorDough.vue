@@ -11,9 +11,9 @@
           type="radio"
           name="dough"
           :value="doughType.value"
+          :checked="doughType.value === modelValue"
           class="visually-hidden"
-          checked
-          @input="emit('check', $event.target.value)"
+          @input="emit('update:modelValue', doughType.value)"
         )
         img(
           :src="getImage(doughType.image)"
@@ -25,6 +25,10 @@
 
 <script setup>
 const props = defineProps({
+  modelValue:{
+    type: String,
+    default: "",
+  },
   doughList: {
     type: Array,
     required: true,
@@ -35,7 +39,7 @@ const getImage = (image) => {
   return new URL(`../../assets/img/${image}`, import.meta.url).href;
 };
 
-const emit = defineEmits(['check'])
+const emit = defineEmits(["update:modelValue"])
 </script>
 
 <style scoped lang="scss">

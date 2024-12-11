@@ -13,20 +13,24 @@
           name="diameter"
           :value="sizeType.value"
           class="visually-hidden"
-          checked
-          @input="emit('check', $event.target.value)"
+          :checked="sizeType.value === modelValue"
+          @input="emit('update:modelValue', sizeType.value)"
         )
         span {{sizeType.name}}
 </template>
 
 <script setup>
 const props = defineProps({
+  modelValue: {
+    type: String,
+    default: "",
+  },
   sizeList: {
     type: Array,
     required: true,
   },
 });
-const emit = defineEmits(["check"]);
+const emit = defineEmits(["update:modelValue"]);
 </script>
 
 <style scoped lang="scss">

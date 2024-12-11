@@ -22,11 +22,13 @@ div
     button.counter__button.counter__button--plus(
       type="button"
       @click.prevent="addItem"
+      :disabled="count >= MAX_INGREDIENT_COUNT"
     )
 </template>
 
 <script setup>
 import { ref } from "vue";
+import AppDrag from "@/common/components/AppDrag.vue";
 
 const props = defineProps({
   item: {
@@ -34,6 +36,8 @@ const props = defineProps({
     required: true,
   },
 });
+
+const MAX_INGREDIENT_COUNT = 3
 
 const count = ref(0);
 

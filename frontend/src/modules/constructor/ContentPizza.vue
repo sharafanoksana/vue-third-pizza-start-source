@@ -7,34 +7,44 @@
       name="pizza_name"
       placeholder="Введите название пиццы"
     )
-
   .content__constructor
-    .pizza(:class="`pizza--foundation--${doughType}-${sauceType} diameter--${sizeType}`")
+    .pizza(:class="`pizza--foundation--${CONSTANTS_DOUGH[doughType]}-${sauceType}`")
       .pizza__wrapper
         .pizza__filling(
           v-for="ingredient in selectedIngredients"
-          :class="`pizza__filling--${ingredient.value}`"
+          :key="ingredient.id"
+          :class="getClass(ingredient)"
         )
   .content__result
     p Итого: {{resultPrice}} ₽
     button.button(
       type="button"
-      :disabled="!resultPrice"
+      :disabled="!selectedIngredients.length"
     ) Готовьте!
 </template>
 
 <script setup>
+const TWO_INGREDIENTS = 2;
+const THREE_INGREDIENTS = 3;
+const CONSTANTS_DOUGH = {
+  light: "small",
+  large: "big",
+};
+
 const props = defineProps({
   doughType: {
     type: String,
+    default: "light",
     required: true,
   },
   sizeType: {
     type: String,
+    default: "big",
     required: true,
   },
   sauceType: {
     type: String,
+    default: "creamy",
     required: true,
   },
   selectedIngredients: {
@@ -46,6 +56,13 @@ const props = defineProps({
     required: true,
   },
 });
+
+const getClass = (ingredient) => {
+  const two = ingredient.count === TWO_INGREDIENTS ? 'pizza__filling--second' : ''
+  const third = ingredient.count === THREE_INGREDIENTS ? 'pizza__filling--third' : ''
+
+  return [`pizza__filling--${ingredient.value}`, two, third]
+}
 </script>
 
 <style scoped lang="scss">
