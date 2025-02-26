@@ -1,11 +1,43 @@
 <template lang="pug">
 app-layout
-  home-view
+  router-view(v-if="isLoaded")
 </template>
 
-<script setup lang="ts">
-import HomeView from "@/views/HomeView.vue";
+<script setup>
 import AppLayout from "@/layouts/AppLayout.vue";
+import {useAuthStore, useDataStore} from "@/stores";
+import {useRoute} from "vue-router";
+import {onMounted, ref} from "vue";
+import JwtService from "@/services/jwt/jwt.service";
+import router from "@/router";
+
+const dataStore = useDataStore()
+const route = useRoute()
+const isLoaded = ref(false)
+
+const checkLoggedIn = async () => {
+  const authStore = useAuthStore()
+  const token = JwtService.getToken()
+  if(!token){
+    isLoaded.value = true
+    return
+  }
+  try{
+    await authStore.whoAmI()
+    const {redirect} = route.query
+    router.push( redirect ? redirect : {name: "home"})
+  } catch (e) {
+    JwtService.destroyToken()
+    console.error(e)
+  } finally {
+    isLoaded.value = true
+  }
+}
+
+onMounted(() => {
+  checkLoggedIn()
+  dataStore.loadData()
+})
 </script>
 <style lang="scss" scoped>
 @import "@/assets/scss/app.scss";

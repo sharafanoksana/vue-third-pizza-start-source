@@ -1,34 +1,30 @@
 <template lang="pug">
-div
+app-drag(
+  :data-transfer="item"
+  :draggable="getValue(item) < MAX_INGREDIENT_COUNT"
+  @drag.passive="onDrug(item)"
+)
   .filling
     img(
-      :src="getImage(item.image)"
+      :src="getPublicImage(item.image)"
       :alt="item.name"
     )
     span {{item.name}}
-  .counter.counter--orange.ingredients__counter
-    button.counter__button.counter__button--minus(
-      type="button"
-      :disabled="!count"
-      @click.prevent="deleteItem"
-    )
-    input.counter__input(
-      type="text"
-      name="counter"
-      readonly=true
-      :value="count"
-      @input="emits('updateValue', props.item, $event.target.value)"
-    )
-    button.counter__button.counter__button--plus(
-      type="button"
-      @click.prevent="addItem"
-      :disabled="count >= MAX_INGREDIENT_COUNT"
-    )
+
+  app-counter(
+    :value="count"
+    :min-value=0
+    :max-value="MAX_INGREDIENT_COUNT"
+    :accent="false"
+    @input="inputValue($event)"
+  )
 </template>
 
 <script setup>
-import { ref } from "vue";
+import {nextTick, toRef} from "vue";
 import AppDrag from "@/common/components/AppDrag.vue";
+import AppCounter from "@/common/components/AppCounter.vue";
+import {getPublicImage} from "@/common/helpers/public-image";
 
 const props = defineProps({
   item: {
@@ -37,38 +33,43 @@ const props = defineProps({
   },
 });
 
-const MAX_INGREDIENT_COUNT = 3
+const MAX_INGREDIENT_COUNT = 3;
 
-const count = ref(0);
+const count = toRef(0);
 
-const emits = defineEmits(['updateValue'])
-const addItem = () => {
-  count.value += 1;
-  emits('updateValue', props.item, count.value)
-};
-const deleteItem = () => {
-  count.value -= 1;
-  emits('updateValue', props.item, count.value)
-};
 
-const updateCount = (e) => {
-  console.log(e)
-  count.value = e;
-  emits('updateValue', props.item, count.value)
+const emits = defineEmits(["updateValue"]);
+
+// eslint-disable-next-line no-unused-vars
+const getValue = (ingredient) => {
+  emits("updateValue", props.item, count.value);
+  count.value = ingredient.count
+  return count.value;
 };
 
-
-
-
-
-const getImage = (image) => {
-  return new URL(`../../assets/img/${image}`, import.meta.url).href;
+function onDrug(i) {
+  // count.value = props.item.count +1
+  count.value = i.count
+  nextTick(() => inputValue(Number(i.count)))
+}
+const setValue = (val) => {
+  count.value = Number(val)
+  emits("updateValue", props.item, Number(val));
 };
+const inputValue = (count) => {
+  return setValue(Math.min(MAX_INGREDIENT_COUNT, Number(count)));
+};
+
+// const getImage = (image) => {
+//   return new URL(`../../assets/img/${image}`, import.meta.url).href;
+// };
+
 </script>
 
 <style scoped lang="scss">
 @import "@/assets/scss/ds-system/ds.scss";
 @import "@/assets/scss/mixins/mixins.scss";
+@import "@/assets/scss/common";
 
 .ingredients__counter {
   width: 54px;
@@ -241,168 +242,6 @@ const getImage = (image) => {
     padding: 4px;
 
     border-radius: 50%;
-  }
-}
-
-.button {
-  $bl: &;
-
-  @include b-s18-h21;
-  font-family: inherit;
-  display: block;
-
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-
-  cursor: pointer;
-  transition: 0.3s;
-  text-align: center;
-
-  color: $white;
-  border: none;
-  border-radius: 8px;
-  outline: none;
-  box-shadow: $shadow-medium;
-
-  background-color: $green-500;
-
-  &:hover:not(:active):not(:disabled) {
-    background-color: $green-400;
-  }
-
-  &:active:not(:disabled) {
-    background-color: $green-600;
-  }
-
-  &:focus:not(:disabled) {
-    opacity: 0.5;
-  }
-
-  &:disabled {
-    background-color: $green-300;
-    color: rgba($white, 0.2);
-    cursor: default;
-  }
-
-  &--border {
-    background-color: transparent;
-    border: 1px solid $green-500;
-    color: $black;
-    box-shadow: none;
-
-    &:hover:not(:active):not(:disabled) {
-      color: $green-500;
-      border-color: $green-500;
-      background-color: transparent;
-    }
-
-    &:active:not(:disabled) {
-      color: $green-600;
-      border-color: $green-600;
-      background-color: transparent;
-    }
-
-    &:disabled {
-      opacity: 0.5;
-    }
-  }
-
-  &--transparent {
-    @include b-s14-h16;
-    background-color: transparent;
-    box-shadow: none;
-    color: $black;
-
-    &:hover:not(:active):not(:disabled) {
-      color: $red-800;
-      background-color: transparent;
-    }
-
-    &:active:not(:disabled) {
-      color: $red-900;
-      background-color: transparent;
-    }
-
-    &:disabled {
-      opacity: 0.25;
-    }
-  }
-
-  &--arrow {
-    &::before {
-      content: "";
-      background-image: url("@/assets/img/button-arrow.svg");
-      background-position: center;
-      background-repeat: no-repeat;
-      margin-right: 16px;
-      width: 18px;
-      height: 18px;
-      display: inline-block;
-      vertical-align: middle;
-      transform: translateY(-1px);
-    }
-  }
-
-  &--white {
-    background-color: $white;
-    color: $green-500;
-  }
-}
-
-.input {
-  display: block;
-
-  span {
-    @include r-s14-h16;
-
-    display: block;
-
-    margin-bottom: 4px;
-  }
-
-  input {
-    @include r-s16-h19;
-
-    display: block;
-
-    box-sizing: border-box;
-    width: 100%;
-    margin: 0;
-    padding: 8px 16px;
-
-    transition: 0.3s;
-
-    color: $black;
-    border: 1px solid $purple-400;
-    border-radius: 8px;
-    outline: none;
-    background-color: $white;
-
-    font-family: inherit;
-
-    &:focus {
-      border-color: $green-500;
-    }
-  }
-
-  &:hover {
-    input {
-      border-color: $black;
-    }
-  }
-
-  &--big-label {
-    display: flex;
-    align-items: center;
-
-    span {
-      @include b-s16-h19;
-
-      margin-right: 16px;
-
-      white-space: nowrap;
-    }
   }
 }
 </style>

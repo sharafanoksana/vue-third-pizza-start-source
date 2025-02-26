@@ -4,26 +4,25 @@ div(
   @dragover.prevent
   @dragenter.prevent
 )
+  slot
 </template>
 
 <script setup>
-import {DATA_TRANSFER_PAYLOAD} from "@/common/constants";
+import { DATA_TRANSFER_PAYLOAD } from "@/common/constants";
 
-const emit = defineEmits(['drop'])
+const emit = defineEmits(["drop"]);
 
-const onDrop = ({dataTransfer}) => {
-  if(!dataTransfer) return
+const onDrop = ({ dataTransfer }) => {
 
-  const payload = dataTransfer.getData(DATA_TRANSFER_PAYLOAD)
-
-  if(payload){
-    const trancferData = dataTransfer.getData(DATA_TRANSFER_PAYLOAD)
-    const data = JSON.parse(trancferData)
-    emit("drop", data)
+  if (!dataTransfer) return;
+  const payload = dataTransfer.getData(DATA_TRANSFER_PAYLOAD);
+  if (payload) {
+    const transferData = dataTransfer.getData(DATA_TRANSFER_PAYLOAD);
+    const data = JSON.parse(transferData);
+    data.count += 1;
+    emit("drop", data);
   }
-}
+};
 </script>
 
-<style scoped lang="scss">
-
-</style>
+<style scoped lang="scss"></style>

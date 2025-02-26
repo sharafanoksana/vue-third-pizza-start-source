@@ -21,7 +21,7 @@ export const normalizeIngredients = (ingredient) => {
   return {
     ...ingredient,
     count: 0,
-    value: ingredients[ingredient.id],
+    value: ingredient.image.split('/').at(-1).split('.')[0] ,
   };
 };
 

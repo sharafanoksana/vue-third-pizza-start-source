@@ -1,171 +1,250 @@
 <template lang="pug">
-main.content
+main.content(v-if="dataStore.isDataLoaded")
   h1.content__wrapper.title--big Конструктор пиццы
   form.content__wrapper(
-    action="#"
+    :action="addToCart"
     method="post"
   )
     selector-dough(
-      v-model="pizza.dough"
-      :dough-list="doughItems"
+      v-model="doughId"
     )
     selector-size(
-      v-model="pizza.size"
-      :size-list="sizeItems"
+      v-model="sizeId"
     )
 
     selector-ingredients(
-      :sauce-list="sauceItems"
       @checkSauce="checkSauceUpdate"
-      :ingredient-list="ingredientItems"
-      @update-selected-ingredients="updateIngredients"
     )
 
-    content-pizza(
-      :dough-type="pizza.dough"
-      :size-type="pizza.size"
-      :sauce-type="pizza.sauce"
-      :selected-ingredients="pizza.ingredients"
-      :result-price="price"
+    constructor-pizza(
+      :dough-type="pizzaStore.dough?.value"
+      :sauce-type="pizzaStore.sauce?.value"
+      :selected-ingredients="pizzaStore.ingredients"
+      @drop="pizzaStore.incrementIngredientQuantity"
     )
 
+    .content__result
+      p Итого: {{pizzaStore.price}} ₽
+      button.button(
+        type="button"
+        :disabled="disableSubmit"
+        @click="addToCart()"
+      ) Готовьте!
+      //      @drop="addIngredient"
+
+  .container-flex__row
+    demo-button(@click="show =!show") Показать
+    br
+    transition(name="bounce" )
+      img(v-if="show" :src="getPublicImage('/public/img/product.svg')" alt="img")
+
+    demo-button(@click="showJS =!showJS") Показать
+    br
+    transition(@enter="enterAnimation" @leave="leaveAnimation" css="false" )
+      img(v-if="showJS" :src="getPublicImage('/public/img/product.svg')" alt="img")
+
+  .container-flex__row
+    button(
+      @click="open = !open"
+    ) Показать/скрыть
+    transition
+      p(v-if="open") Элемент
+
+    button(
+      @click="add"
+    ) Add
+    transition-group(name="card" tag="ul")
+      li.card(v-for="({ id }) in items" :key="id") Id: {{ id }}
 </template>
 
 <script setup>
-import doughJSON from "@/mocks/dough.json";
-import sizesJSON from "@/mocks/sizes.json";
-import saucesJSON from "@/mocks/sauces.json";
-import ingredientsJSON from "@/mocks/ingredients.json";
-import {
-  normalizeDough,
-  normalizeIngredients,
-  normalizeSauces,
-  normalizeSize,
-} from "@/common/helpers/normalize";
 import SelectorDough from "@/modules/constructor/SelectorDough.vue";
-import { computed, nextTick, reactive, ref, watch } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 import SelectorSize from "@/modules/constructor/SelectorSize.vue";
 import SelectorSauce from "@/modules/constructor/SelectorSauce.vue";
 import SelectorIngredients from "@/modules/constructor/SelectorIngredients.vue";
-import ContentPizza from "@/modules/constructor/ContentPizza.vue";
+import ConstructorPizza from "@/modules/constructor/ConstructorPizza.vue";
+import { useDataStore } from "@/stores/data";
+import { usePizzaStore } from "@/stores/pizza";
+import { useCartStore } from "@/stores/cart";
+import router from "@/router";
 
-const doughItems = doughJSON.map((item) => normalizeDough(item));
-const sizeItems = sizesJSON.map((item) => normalizeSize(item));
-const sauceItems = saucesJSON.map((item) => normalizeSauces(item));
-const ingredientItems = ingredientsJSON.map((item) =>
-  normalizeIngredients(item),
-);
+/* -------- урок ---------*/
+import DemoButton from "@/common/components/demo/DemoButton.vue";
+import { getPublicImage } from "@/common/helpers/public-image";
 
-const pizza = reactive({
-  name: "",
-  dough: doughItems[0].value,
-  size: sizeItems[0].value,
-  sauce: sauceItems.at(-1).value,
-  ingredients: ingredientItems.filter((el) => el.count !== 0),
+const items = reactive([{ id: 1 }, { id: 2 }]);
+
+function add() {
+  items.push({ id: Math.floor(Math.random() * 10) });
+}
+const open = ref(false);
+const show = ref(false);
+const showJS = ref(false);
+function clearAnimations(el, done) {
+  el.addEventListener("animationend", () => {
+    el.className = "";
+    done();
+  });
+}
+
+function enterAnimation(el, done) {
+  el.className = "bounce";
+  clearAnimations(el, done);
+}
+
+function leaveAnimation(el, done) {
+  clearAnimations(el, done);
+}
+/* -------- конец ---------*/
+
+const dataStore = useDataStore();
+const pizzaStore = usePizzaStore();
+const cartStore = useCartStore();
+
+const doughId = computed({
+  get() {
+    return pizzaStore.doughId || 1;
+  },
+  set(value) {
+    pizzaStore.setDoughId(value);
+  },
+});
+const sauceId = computed({
+  get() {
+    return pizzaStore.sauceId || 1;
+  },
+  set(value) {
+    pizzaStore.setSauceId(value);
+  },
+});
+const sizeId = computed({
+  get() {
+    return pizzaStore.sizeId || 1;
+  },
+  set(value) {
+    pizzaStore.setSizeId(value);
+  },
 });
 
-const price = computed(() => {
-  const { dough, size, sauce, ingredients } = pizza;
-
-  const sizeMultiplier = sizeItems.find((el) => (el.value === size)).multiplier ?? 1;
-  const doughPrice =
-    doughItems.find((item) => item.value === dough)?.price ?? 0;
-  const saucePrice =
-    sauceItems.find((item) => item.value === sauce)?.price ?? 0;
-
-  // const ingredientsPrice =
-  let ingredientsPrice = 0;
-  if (ingredients.length) {
-    ingredientsPrice = ingredients.reduce(
-      (accumulator, current) => accumulator + current.price * current.count,
-      ingredientsPrice,
-    );
-  }
-  return (doughPrice + saucePrice + ingredientsPrice) * sizeMultiplier;
+const disableSubmit = computed(() => {
+  return !pizzaStore.name.length || pizzaStore.price === 0;
 });
-
 const getImage = (image) => {
   return new URL(`../assets/img/${image}`, import.meta.url).href;
 };
 
-const checkSauceUpdate = (str) => {
-  pizza.sauce = str;
+const checkSauceUpdate = (id) => {
+  sauceId.value = +id;
 };
 
-const updateIngredients = (item) => {
-  pizza.ingredients = ingredientItems.filter((el) => el.count > 0);
+//todo разобраться с добавлением ингредиентов с помощью drag/drop
+const addIngredient = (ingredientId) => {
+  pizzaStore.incrementIngredientQuantity(ingredientId);
 };
 
+const addToCart = () => {
+  const cartStore = useCartStore();
+  cartStore.savePizza(pizzaStore.$state);
+  pizzaStore.$reset();
+
+  pizzaStore.ingredients.forEach((el) => {
+    el.count = 0;
+    pizzaStore.deleteIngredient(el.ingredientId);
+  });
+  router.push("/cart");
+};
+const resetPizza = () => {
+  pizzaStore.setName("");
+  if (dataStore.isDataLoaded) {
+    pizzaStore.setDoughId(dataStore.doughs[0].id);
+    pizzaStore.setSizeId(dataStore.sizes[0].id);
+    pizzaStore.setSauceId(dataStore.sauces[0].id);
+  }
+  pizzaStore.setIngredients([]);
+  pizzaStore.setIndex(null);
+};
+onMounted(() => {
+  resetPizza();
+});
 </script>
 
 <style scoped lang="scss">
 @import "@/assets/scss/ds-system/ds.scss";
 @import "@/assets/scss/mixins/mixins.scss";
+@import "@/assets/scss/common";
 
+/* -------- урок ---------*/
+.container-flex__row {
+  display: flex;
+  flex-direction: row;
+}
+
+.bounce {
+  animation: bounce 0.5s;
+  &-reverse {
+    animation: bounce 0.5s reverse;
+  }
+}
+@keyframes bounce {
+  0% {
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1.5);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.bounce-enter-active {
+  animation: bounce-in 0.5s;
+}
+.bounce-leave-active {
+  animation: bounce-in 0.5s reverse;
+}
+@keyframes bounce-in {
+  0% {
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1.5);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.card-enter-active,
+.card-leave-active {
+  transition: all 0.5s ease;
+}
+
+.card-enter-from,
+.card-leave-to {
+  opacity: 0;
+  transform: translateY(30px);
+}
+.v-enter-active,
+.v-leave-active {
+  transition: opacity 0.5s ease;
+}
+
+.v-enter-from,
+.v-leave-to {
+  opacity: 0;
+}
+
+/* -------- конец ---------*/
 .content {
-  padding-top: 20px;
+  margin-top: 62px;
 }
-
-.content__wrapper {
-  display: flex;
-  align-items: flex-start;
-  flex-wrap: wrap;
-
-  width: 920px;
-  margin: 0 auto;
-  padding-right: 2.12%;
-  padding-bottom: 30px;
-  padding-left: 2.12%;
-}
-
-.content__dough {
-  width: 527px;
-  margin-top: 15px;
-  margin-right: auto;
-  margin-bottom: 15px;
-}
-
-.content__diameter {
-  width: 373px;
-  margin-top: 15px;
-  margin-bottom: 15px;
-}
-
-.content__ingredients {
-  width: 527px;
-  margin-top: 15px;
-  margin-right: auto;
-  margin-bottom: 15px;
-}
-
-.content__pizza {
-  width: 373px;
-  margin-top: 15px;
-  margin-bottom: 15px;
-}
-
-.content__constructor {
-  display: flex;
-  width: 315px;
-  height: 315px;
-  margin-top: 25px;
-  margin-right: auto;
-  margin-left: auto;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background-color: $green-100;
-  box-shadow:
-    0px 0px 20px 10px $silver-200,
-    0px 0px 20px 5px $green-100;
-}
-
 .content__result {
   display: flex;
+  width: 100%;
   align-items: center;
-  justify-content: center;
-
-  margin-top: 25px;
+  justify-content: flex-end;
 
   p {
     @include b-s24-h28;
@@ -176,800 +255,7 @@ const updateIngredients = (item) => {
   button {
     margin-left: 12px;
     padding: 16px 45px;
-  }
-}
-
-.sheet {
-  padding-top: 15px;
-
-  border-radius: 8px;
-  background-color: $white;
-  box-shadow: $shadow-light;
-}
-
-.sheet__title {
-  padding-right: 18px;
-  padding-left: 18px;
-}
-
-.sheet__content {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-
-  margin-top: 8px;
-  padding-top: 18px;
-  padding-right: 18px;
-  padding-left: 18px;
-
-  border-top: 1px solid rgba($green-500, 0.1);
-}
-
-.ingredients__sauce {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-
-  width: 100%;
-  margin-bottom: 14px;
-
-  p {
-    @include r-s16-h19;
-
-    margin-top: 0;
-    margin-right: 16px;
-    margin-bottom: 10px;
-  }
-}
-
-.ingredients__input {
-  margin-right: 24px;
-  margin-bottom: 10px;
-}
-
-.ingredients__filling {
-  width: 100%;
-
-  p {
-    @include r-s16-h19;
-
-    margin-top: 0;
-    margin-bottom: 16px;
-  }
-}
-
-.title {
-  box-sizing: border-box;
-  width: 100%;
-  margin: 0;
-
-  color: $black;
-
-  &--big {
-    @include b-s36-h42;
-  }
-
-  &--small {
-    @include b-s18-h21;
-  }
-}
-
-.ingredients__list {
-  @include clear-list;
-
-  display: flex;
-  align-items: flex-start;
-  flex-wrap: wrap;
-}
-
-.ingredients__item {
-  width: 100px;
-  min-height: 40px;
-  margin-right: 17px;
-  margin-bottom: 35px;
-}
-
-.ingredients__counter {
-  width: 54px;
-  margin-top: 10px;
-  margin-left: 36px;
-}
-
-.radio {
-  cursor: pointer;
-
-  span {
-    @include r-s16-h19;
-
-    position: relative;
-
-    padding-left: 28px;
-
-    &:before {
-      @include p_center-v;
-
-      display: block;
-
-      box-sizing: border-box;
-      width: 20px;
-      height: 20px;
-
-      content: "";
-      transition: 0.3s;
-
-      border: 1px solid $purple-400;
-      border-radius: 50%;
-      background-color: $white;
-    }
-  }
-
-  &:hover {
-    input:not(:checked):not(:disabled) + span {
-      &:before {
-        border-color: $purple-800;
-      }
-    }
-  }
-
-  input {
-    display: none;
-
-    &:checked + span {
-      &:before {
-        border: 6px solid $green-500;
-      }
-    }
-
-    &:disabled {
-      & + span {
-        &:before {
-          border-color: $purple-400;
-          background-color: $silver-200;
-        }
-      }
-
-      &:checked + span {
-        &:before {
-          border: 6px solid $purple-400;
-        }
-      }
-    }
-  }
-}
-
-.counter {
-  display: flex;
-
-  justify-content: space-between;
-  align-items: center;
-}
-
-.counter__button {
-  $el: &;
-  $size_icon: 50%;
-
-  position: relative;
-
-  display: block;
-
-  width: 16px;
-  height: 16px;
-  margin: 0;
-  padding: 0;
-
-  cursor: pointer;
-  transition: 0.3s;
-
-  border: none;
-  border-radius: 50%;
-  outline: none;
-
-  &--minus {
-    background-color: $purple-100;
-
-    &::before {
-      @include p_center-all;
-
-      width: $size_icon;
-      height: 2px;
-
-      content: "";
-
-      border-radius: 2px;
-      background-color: $black;
-    }
-
-    &:hover:not(:active):not(:disabled) {
-      background-color: $purple-200;
-    }
-
-    &:active:not(:disabled) {
-      background-color: $purple-300;
-    }
-
-    &:focus:not(:disabled) {
-      box-shadow: $shadow-regular;
-    }
-
-    &:disabled {
-      cursor: default;
-
-      &::before {
-        opacity: 0.1;
-      }
-    }
-  }
-
-  &--plus {
-    background-color: $green-500;
-
-    &::before {
-      @include p_center-all;
-
-      width: $size_icon;
-      height: 2px;
-
-      content: "";
-
-      border-radius: 2px;
-      background-color: $white;
-    }
-
-    &::after {
-      @include p_center-all;
-
-      width: $size_icon;
-      height: 2px;
-
-      content: "";
-      transform: translate(-50%, -50%) rotate(90deg);
-
-      border-radius: 2px;
-      background-color: $white;
-    }
-
-    &:hover:not(:active):not(:disabled) {
-      background-color: $green-400;
-    }
-
-    &:active:not(:disabled) {
-      background-color: $green-600;
-    }
-
-    &:focus:not(:disabled) {
-      box-shadow: $shadow-regular;
-    }
-
-    &:disabled {
-      cursor: default;
-
-      opacity: 0.3;
-    }
-  }
-
-  &--orange {
-    background-color: $orange-200;
-
-    &:hover:not(:active):not(:disabled) {
-      background-color: $orange-100;
-    }
-
-    &:active:not(:disabled) {
-      background-color: $orange-300;
-    }
-  }
-}
-
-.counter__input {
-  @include r-s14-h16;
-
-  box-sizing: border-box;
-  width: 22px;
-  margin: 0;
-  padding: 0 3px;
-
-  text-align: center;
-
-  color: $black;
-  border: none;
-  border-radius: 10px;
-  outline: none;
-  background-color: transparent;
-
-  &:focus {
-    box-shadow: inset $shadow-regular;
-  }
-}
-
-.dough__input {
-  position: relative;
-
-  margin-right: 8%;
-  margin-bottom: 20px;
-  padding-left: 50px;
-
-  cursor: pointer;
-
-  img {
-    @include p_center-v;
-
-    width: 36px;
-    height: 36px;
-
-    transition: 0.3s;
-
-    border-radius: 50%;
-  }
-
-  b {
-    @include r-s16-h19;
-  }
-
-  span {
-    @include l-s11-h13;
-
-    display: block;
-  }
-
-  &:hover {
-    img {
-      box-shadow: $shadow-regular;
-    }
-  }
-
-  input {
-    &:checked + img {
-      box-shadow: $shadow-large;
-    }
-  }
-}
-
-.diameter__input {
-  margin-right: 8.7%;
-  margin-bottom: 20px;
-  padding-top: 7px;
-  padding-bottom: 6px;
-
-  cursor: pointer;
-
-  span {
-    @include r-s16-h19;
-
-    position: relative;
-
-    padding-left: 46px;
-
-    &::before {
-      @include p_center_v;
-
-      width: 36px;
-      height: 36px;
-
-      content: "";
-      transition: 0.3s;
-
-      border-radius: 50%;
-      background-color: $green-100;
-      background-image: url("@/assets/img/diameter.svg");
-      background-repeat: no-repeat;
-      background-position: center;
-    }
-  }
-
-  &:nth-child(3n) {
-    margin-right: 0;
-  }
-
-  &--small {
-    span::before {
-      background-size: 18px;
-    }
-  }
-
-  &--normal {
-    span::before {
-      background-size: 29px;
-    }
-  }
-
-  &--big {
-    span::before {
-      background-size: 100%;
-    }
-  }
-
-  &:hover {
-    span::before {
-      box-shadow: $shadow-regular;
-    }
-  }
-
-  input {
-    &:checked + span::before {
-      box-shadow: $shadow-large;
-    }
-  }
-}
-
-.filling {
-  @include r-s14-h16;
-
-  position: relative;
-
-  display: block;
-
-  padding-left: 36px;
-
-  img {
-    @include p_center-v;
-
-    display: block;
-
-    width: 32px;
-    height: 32px;
-
-    box-sizing: border-box;
-    padding: 4px;
-
-    border-radius: 50%;
-  }
-}
-
-.button {
-  $bl: &;
-
-  @include b-s18-h21;
-  font-family: inherit;
-  display: block;
-
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-
-  cursor: pointer;
-  transition: 0.3s;
-  text-align: center;
-
-  color: $white;
-  border: none;
-  border-radius: 8px;
-  outline: none;
-  box-shadow: $shadow-medium;
-
-  background-color: $green-500;
-
-  &:hover:not(:active):not(:disabled) {
-    background-color: $green-400;
-  }
-
-  &:active:not(:disabled) {
-    background-color: $green-600;
-  }
-
-  &:focus:not(:disabled) {
-    opacity: 0.5;
-  }
-
-  &:disabled {
-    background-color: $green-300;
-    color: rgba($white, 0.2);
-    cursor: default;
-  }
-
-  &--border {
-    background-color: transparent;
-    border: 1px solid $green-500;
-    color: $black;
-    box-shadow: none;
-
-    &:hover:not(:active):not(:disabled) {
-      color: $green-500;
-      border-color: $green-500;
-      background-color: transparent;
-    }
-
-    &:active:not(:disabled) {
-      color: $green-600;
-      border-color: $green-600;
-      background-color: transparent;
-    }
-
-    &:disabled {
-      opacity: 0.5;
-    }
-  }
-
-  &--transparent {
-    @include b-s14-h16;
-    background-color: transparent;
-    box-shadow: none;
-    color: $black;
-
-    &:hover:not(:active):not(:disabled) {
-      color: $red-800;
-      background-color: transparent;
-    }
-
-    &:active:not(:disabled) {
-      color: $red-900;
-      background-color: transparent;
-    }
-
-    &:disabled {
-      opacity: 0.25;
-    }
-  }
-
-  &--arrow {
-    &::before {
-      content: "";
-      background-image: url("@/assets/img/button-arrow.svg");
-      background-position: center;
-      background-repeat: no-repeat;
-      margin-right: 16px;
-      width: 18px;
-      height: 18px;
-      display: inline-block;
-      vertical-align: middle;
-      transform: translateY(-1px);
-    }
-  }
-
-  &--white {
-    background-color: $white;
-    color: $green-500;
-  }
-}
-
-.pizza {
-  position: relative;
-
-  display: block;
-
-  box-sizing: border-box;
-  width: 100%;
-
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: 100%;
-
-  &--foundation--big-creamy {
-    background-image: url("@/assets/img/foundation/big-creamy.svg");
-  }
-
-  &--foundation--big-tomato {
-    background-image: url("@/assets/img/foundation/big-tomato.svg");
-  }
-
-  &--foundation--small-creamy {
-    background-image: url("@/assets/img/foundation/small-creamy.svg");
-  }
-
-  &--foundation--small-tomato {
-    background-image: url("@/assets/img/foundation/small-tomato.svg");
-  }
-
-  &.diameter {
-    display: flex;
-    &--small {
-      width: 245px;
-      height: 245px;
-    }
-
-    &--normal {
-      width: 280px;
-      height: 280px;
-    }
-
-    &--big {
-      width: 315px;
-      height: 315px;
-    }
-  }
-}
-
-.pizza__wrapper {
-  width: 100%;
-  padding-bottom: 100%;
-}
-
-.pizza__filling {
-  $bl: &;
-  position: absolute;
-  top: 0;
-  left: 0;
-
-  display: block;
-
-  width: 100%;
-  height: 100%;
-
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: 100%;
-
-  &::before,
-  &::after {
-    display: none;
-
-    position: absolute;
-    top: 0;
-    left: 0;
-
-    width: 100%;
-    height: 100%;
-
-    content: "";
-
-    background-image: inherit;
-  }
-
-  &--second {
-    &::before {
-      display: block;
-
-      transform: rotate(45deg);
-    }
-  }
-
-  &--third {
-    &::before {
-      display: block;
-
-      transform: rotate(45deg);
-    }
-
-    &::after {
-      display: block;
-
-      transform: rotate(-45deg);
-    }
-  }
-
-  &--ananas,
-  &--ananas.pizza__filling--second::before,
-  &--ananas.pizza__filling--third::after {
-    background-image: url("@/assets/img/filling-big/ananas.svg");
-  }
-
-  &--bacon,
-  &--bacon.pizza__filling--second::before,
-  &--bacon.pizza__filling--third::after {
-    background-image: url("@/assets/img/filling-big/bacon.svg");
-  }
-
-  &--blue_cheese,
-  &--blue.pizza__filling--second::before,
-  &--blue.pizza__filling--third::after {
-    background-image: url("@/assets/img/filling-big/blue_cheese.svg");
-  }
-
-  &--cheddar,
-  &--cheddar.pizza__filling--second::before,
-  &--cheddar.pizza__filling--third::after {
-    background-image: url("@/assets/img/filling-big/cheddar.svg");
-  }
-
-  &--chile,
-  &--chile.pizza__filling--second::before,
-  &--chile.pizza__filling--third::after {
-    background-image: url("@/assets/img/filling-big/chile.svg");
-  }
-
-  &--ham,
-  &--ham.pizza__filling--second::before,
-  &--ham.pizza__filling--third::after {
-    background-image: url("@/assets/img/filling-big/ham.svg");
-  }
-
-  &--jalapeno,
-  &--jalapeno.pizza__filling--second::before,
-  &--jalapeno.pizza__filling--third::after {
-    background-image: url("@/assets/img/filling-big/jalapeno.svg");
-  }
-
-  &--mozzarella,
-  &--mozzarella.pizza__filling--second::before,
-  &--mozzarella.pizza__filling--third::after {
-    background-image: url("@/assets/img/filling-big/mozzarella.svg");
-  }
-
-  &--mushrooms,
-  &--mushrooms.pizza__filling--second::before,
-  &--mushrooms.pizza__filling--third::after {
-    background-image: url("@/assets/img/filling-big/mushrooms.svg");
-  }
-
-  &--olives,
-  &--olives.pizza__filling--second::before,
-  &--olives.pizza__filling--third::after {
-    background-image: url("@/assets/img/filling-big/olives.svg");
-  }
-
-  &--onion,
-  &--onion.pizza__filling--second::before,
-  &--onion.pizza__filling--third::after {
-    background-image: url("@/assets/img/filling-big/onion.svg");
-  }
-
-  &--parmesan,
-  &--parmesan.pizza__filling--second::before,
-  &--parmesan.pizza__filling--third::after {
-    background-image: url("@/assets/img/filling-big/parmesan.svg");
-  }
-
-  &--salami,
-  &---salami.pizza__filling--second::before,
-  &---salami.pizza__filling--third::after {
-    background-image: url("@/assets/img/filling-big/salami.svg");
-  }
-
-  &--salmon,
-  &--salmon.pizza__filling--second::before,
-  &--salmon.pizza__filling--third::after {
-    background-image: url("@/assets/img/filling-big/salmon.svg");
-  }
-
-  &--tomatoes,
-  &--tomatoes.pizza__filling--second::before,
-  &--tomatoes.pizza__filling--third::after {
-    background-image: url("@/assets/img/filling-big/tomatoes.svg");
-  }
-}
-
-.input {
-  display: block;
-
-  span {
-    @include r-s14-h16;
-
-    display: block;
-
-    margin-bottom: 4px;
-  }
-
-  input {
-    @include r-s16-h19;
-
-    display: block;
-
-    box-sizing: border-box;
-    width: 100%;
-    margin: 0;
-    padding: 8px 16px;
-
-    transition: 0.3s;
-
-    color: $black;
-    border: 1px solid $purple-400;
-    border-radius: 8px;
-    outline: none;
-    background-color: $white;
-
-    font-family: inherit;
-
-    &:focus {
-      border-color: $green-500;
-    }
-  }
-
-  &:hover {
-    input {
-      border-color: $black;
-    }
-  }
-
-  &--big-label {
-    display: flex;
-    align-items: center;
-
-    span {
-      @include b-s16-h19;
-
-      margin-right: 16px;
-
-      white-space: nowrap;
-    }
+    z-index: 10;
   }
 }
 </style>

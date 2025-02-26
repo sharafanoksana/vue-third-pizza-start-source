@@ -9,7 +9,7 @@ div(
 </template>
 
 <script setup>
-import {DATA_TRANSFER_PAYLOAD} from "@/common/constants";
+import { DATA_TRANSFER_PAYLOAD } from "@/common/constants";
 
 const props = defineProps({
   draggable: {
@@ -20,14 +20,12 @@ const props = defineProps({
     type: Object,
     required: true,
   },
-})
+});
 
-const onDragStart = ({dataTransfer}) => {
-  const data = JSON.stringify(props.dataTransfer)
-  dataTransfer.setData(DATA_TRANSFER_PAYLOAD)
-}
+const onDragStart = ({ dataTransfer }) => {
+  const data = JSON.stringify(props.dataTransfer);
+  dataTransfer.setData(DATA_TRANSFER_PAYLOAD, data);
+};
 </script>
 
-<style scoped lang="scss">
-
-</style>
+<style scoped lang="scss"></style>

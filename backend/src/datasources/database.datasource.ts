@@ -5,10 +5,10 @@ const config = {
   name: 'database',
   connector: 'postgresql',
   url: '',
-  host: 'db',
+  host: 'localhost',
   port: 5432,
   user: 'postgres',
-  password: 'psql',
+  password: 'postgres',
   database: 'pizza',
 };
 

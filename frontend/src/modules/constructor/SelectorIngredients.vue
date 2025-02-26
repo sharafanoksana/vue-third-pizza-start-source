@@ -4,38 +4,29 @@
     h2.title.title--small.sheet__title Выберите ингредиенты
     .sheet__content.ingredients
       selector-sauce(
-        :sauceList="sauceList"
         @check="checkSauce"
       )
       .ingredients__filling
         p Начинка:
         ul.ingredients__list
           li.ingredients__item(
-            v-for="ingredientType in ingredientList"
+            v-for="ingredientType in dataStore.ingredients"
             :key="ingredientType.id"
           )
             selector-ingredients-item(
               :item="ingredientType"
               @updateValue="updateSelectedIngredients"
             )
-
 </template>
 
 <script setup>
 import SelectorSauce from "@/modules/constructor/SelectorSauce.vue";
 import SelectorIngredientsItem from "@/modules/constructor/SelectorIngredientItem.vue";
+import { useDataStore } from "@/stores/data";
+import { usePizzaStore } from "@/stores/pizza";
 
-const props = defineProps({
-  sauceList: {
-    type: Array,
-    required: true,
-  },
-  ingredientList: {
-    type: Array,
-    required: true,
-  },
-});
-
+const dataStore = useDataStore();
+const pizzaStore = usePizzaStore();
 const emits = defineEmits(["checkSauce", "updateSelectedIngredients"]);
 
 function checkSauce(e) {
@@ -44,45 +35,24 @@ function checkSauce(e) {
 
 function updateSelectedIngredients(item, count) {
   item.count = count;
-  emits("updateSelectedIngredients", item);
+  if (count >= 1) {
+    pizzaStore.setIngredientQuantity(item.value, count);
+  } else {
+    pizzaStore.deleteIngredient(item.value);
+  }
 }
 </script>
 
 <style scoped lang="scss">
 @import "@/assets/scss/ds-system/ds.scss";
 @import "@/assets/scss/mixins/mixins.scss";
+@import "@/assets/scss/common";
 
 .content__ingredients {
   width: 527px;
   margin-top: 15px;
   margin-right: auto;
   margin-bottom: 15px;
-}
-
-.sheet {
-  padding-top: 25px;
-
-  border-radius: 8px;
-  background-color: $white;
-  box-shadow: $shadow-light;
-}
-
-.sheet__title {
-  padding-right: 18px;
-  padding-left: 18px;
-}
-
-.sheet__content {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-
-  margin-top: 8px;
-  padding-top: 18px;
-  padding-right: 18px;
-  padding-left: 18px;
-
-  border-top: 1px solid rgba($green-500, 0.1);
 }
 
 .ingredients__filling {
@@ -93,22 +63,6 @@ function updateSelectedIngredients(item, count) {
 
     margin-top: 0;
     margin-bottom: 16px;
-  }
-}
-
-.title {
-  box-sizing: border-box;
-  width: 100%;
-  margin: 0;
-
-  color: $black;
-
-  &--big {
-    @include b-s36-h42;
-  }
-
-  &--small {
-    @include b-s18-h21;
   }
 }
 
