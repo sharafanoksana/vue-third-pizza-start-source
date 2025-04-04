@@ -4,15 +4,17 @@ import { ingredientsQuantity } from "@/common/helpers/ingredients-quantity";
 export const pizzaPrice = (pizza) => {
   const data = useDataStore();
   const ingredients = ingredientsQuantity(pizza);
-  const defaultDoughId = 1
-  const defaultSauceId = 2
+  const defaultDoughId = 1;
+  const defaultSauceId = 2;
 
   const sizeMultiplier =
     data.sizes.find((item) => item.id === pizza.sizeId)?.multiplier ?? 1;
   const doughPrice =
-    data.doughs.find((item) => item.id === pizza.doughId || defaultDoughId )?.price ?? 0;
+    data.doughs.find((item) => item.id === pizza.doughId || defaultDoughId)
+      ?.price ?? 0;
   const saucePrice =
-    data.sauces.find((item) => item.id === pizza.sauceId || defaultSauceId )?.price ?? 0;
+    data.sauces.find((item) => item.id === pizza.sauceId || defaultSauceId)
+      ?.price ?? 0;
 
   /*
    * Здесь мы при помощи метода map превращаем массив ингредиентов
@@ -20,9 +22,10 @@ export const pizzaPrice = (pizza) => {
    * После чего методом reduce вычисляем сумму всех элементов массива, что даст нам общую стоимость всех ингредиентов.
    */
   const ingredientsPrice = data.ingredients
-      .map((item) => ingredients[item.id] * item.price)
-      .reduce((acc, item) => acc + item, 0)
-    console.log('ingredientsPrice',ingredientsPrice)
-    console.log('ingredients',ingredients)
-    return  pizza.ingredients.length ? (doughPrice + saucePrice + ingredientsPrice) * sizeMultiplier : 0
+    .map((item) => ingredients[item.id] * item.price)
+    .reduce((acc, item) => acc + item, 0);
+
+  return pizza.ingredients.length
+    ? (doughPrice + saucePrice + ingredientsPrice) * sizeMultiplier
+    : 0;
 };
