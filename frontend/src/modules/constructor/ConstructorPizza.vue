@@ -29,15 +29,15 @@
 
 <script setup>
 import AppDrop from "@/common/components/AppDrop.vue";
-import {computed} from "vue";
-import {usePizzaStore} from "@/stores/pizza";
-import {useCartStore} from "@/stores/cart";
-import {enterAnimation, leaveAnimation} from "@/common/helpers/animation";
+import { computed } from "vue";
+import { usePizzaStore } from "@/stores/pizza";
+import { useCartStore } from "@/stores/cart";
+import { enterAnimation, leaveAnimation } from "@/common/helpers/animation";
 
 const TWO_INGREDIENTS = 2;
 const THREE_INGREDIENTS = 3;
 
-const pizzaStore = usePizzaStore()
+const pizzaStore = usePizzaStore();
 
 const name = computed({
   get() {
@@ -67,18 +67,14 @@ const props = defineProps({
   },
 });
 
-
 // const emit = defineEmits(['drop'])
 const getClass = (ingredient) => {
-  const two = ingredient.count === TWO_INGREDIENTS ? 'pizza__filling--second' : ''
-  const third = ingredient.count === THREE_INGREDIENTS ? 'pizza__filling--third' : ''
-  console.log('getClass ingredient', ingredient)
-  return [`pizza__filling--${ingredient.ingredientId}`, two, third]
-}
-
-
-
-
+  const two =
+    ingredient.count === TWO_INGREDIENTS ? "pizza__filling--second" : "";
+  const third =
+    ingredient.count === THREE_INGREDIENTS ? "pizza__filling--third" : "";
+  return [`pizza__filling--${ingredient.ingredientId}`, two, third];
+};
 </script>
 
 <style scoped lang="scss">
@@ -88,7 +84,6 @@ const getClass = (ingredient) => {
 @import "@/assets/scss/blocks/title.scss";
 @import "@/assets/scss/blocks/input.scss";
 @import "@/assets/scss/transitions";
-
 
 .content__pizza {
   width: 373px;

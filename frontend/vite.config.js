@@ -4,7 +4,7 @@ import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 import { createHtmlPlugin } from "vite-plugin-html";
 import vueDevTools from "vite-plugin-vue-devtools";
-import pugPlugin from "vite-plugin-pug"
+import pugPlugin from "vite-plugin-pug";
 
 const options = { pretty: true } // FIXME: pug pretty is deprecated!
 const locals = { name: "My Pug" }
