@@ -21,6 +21,9 @@ export const normalizeIngredients = (ingredient) => {
   return {
     ...ingredient,
     count: 0,
+    totalWeight: 1000,
+    servingWeight: 50,
+    balance: 1000,
     value: ingredient.image.split('/').at(-1).split('.')[0] ,
   };
 };

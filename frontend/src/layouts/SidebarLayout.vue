@@ -9,7 +9,6 @@
 
 <script setup>
 
-import AppDefaultHeader from "@/layouts/AppDefaultHeader.vue";
 </script>
 
 <style scoped lang="scss">

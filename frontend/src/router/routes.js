@@ -1,4 +1,4 @@
-import {isLoggedIn} from "@/middlewares/isLoggedIn";
+import {isLoggedIn, isAdmin} from "@/middlewares/isLoggedIn";
 
 export default [
   {
@@ -42,6 +42,12 @@ export default [
         name: "orders",
         component: () => import("@/views/OrdersView.vue"),
         // meta: { layout: "" },
+      },
+      {
+        path: "/analytic",
+        name: "analytic",
+        component: () => import("@/views/AnalyticView.vue"),
+        meta: { middelwares: [isAdmin] },
       },
     ],
   },

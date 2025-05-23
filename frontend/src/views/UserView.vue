@@ -12,6 +12,12 @@
         :class="{ 'layout__link--active': routeName === 'profile' }"
         :to="{ name: 'profile' }"
       ) Мои данные
+      router-link(
+        v-if="authStore.isAdmin"
+        class="layout__link"
+        :class="{ 'layout__link--active': routeName === 'analytic' }"
+        :to="{ name: 'analytic' }"
+      ) Аналитика
 
   .layout__content
     router-view
@@ -22,9 +28,11 @@
 import SidebarLayout from "@/layouts/SidebarLayout.vue";
 import { useRoute } from "vue-router";
 import { computed } from "vue";
+import {useAuthStore} from "@/stores";
+
+const authStore = useAuthStore()
 
 const route = useRoute();
-
 const routeName = computed(() => {
   route.name;
 });

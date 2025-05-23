@@ -2,6 +2,7 @@ import { useAuthStore } from "@/stores/auth.js";
 
 export const isLoggedIn = ({ to }) => {
   const authStore = useAuthStore();
+  console.log('authStore', authStore)
   if (!authStore.isAuthenticated) {
     /* Сохраняем маршрут, по которому пользователь намеревался перейти,
      * чтобы перенаправить на него пользователя после успешной авторизации
@@ -11,3 +12,12 @@ export const isLoggedIn = ({ to }) => {
     return true;
   }
 };
+export const isAdmin = () => {
+  const authStore = useAuthStore();
+
+  if(!authStore.isAdmin){
+    return { path: "/" };
+  } else {
+    return true
+  }
+}

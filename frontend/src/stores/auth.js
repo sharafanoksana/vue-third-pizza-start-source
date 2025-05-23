@@ -11,7 +11,9 @@ export const useAuthStore = defineStore("auth", {
     isAuthenticated() {
       return !!this.user;
     },
-    // getUserAttribute: (state) => (attr) => (state.user ? state.user[attr] : ""),
+    isAdmin(){
+      return this.user.email === 'user@example.com'
+    }
   },
   actions: {
     setUser(user) {

@@ -25,7 +25,16 @@ export const pizzaPrice = (pizza) => {
     .map((item) => ingredients[item.id] * item.price)
     .reduce((acc, item) => acc + item, 0);
 
-  return pizza.ingredients.length
-    ? (doughPrice + saucePrice + ingredientsPrice) * sizeMultiplier
-    : 0;
+  function getPrice() {
+    // подсчет баланса ингридиентов
+    data.ingredients.forEach((item) => {
+      item.balance =
+        item.totalWeight -
+        ingredients[item.id] * item.servingWeight * sizeMultiplier;
+    });
+    console.log("data.ingredients", data.ingredients);
+    return (doughPrice + saucePrice + ingredientsPrice) * sizeMultiplier;
+  }
+
+  return pizza.ingredients.length ? getPrice() : 0;
 };
